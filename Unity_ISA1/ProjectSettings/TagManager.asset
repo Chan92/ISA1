@@ -5,6 +5,9 @@ TagManager:
   serializedVersion: 2
   tags:
   - LobbyPlayer
+  - Ground
+  - Fire
+  - Poision
   layers:
   - Default
   - TransparentFX
