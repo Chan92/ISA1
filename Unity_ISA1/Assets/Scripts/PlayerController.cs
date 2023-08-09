@@ -5,27 +5,45 @@ using UnityEngine.UI;
 using UnityEngine.Networking;
 
 public class PlayerController : NetworkBehaviour{
+	public event System.Action<Transform> OnStartGame;
+
 	[Header("Movement")]
-	public float moveSpeed = 10;
-	public float poisonMoveSpeed = 5;
-	public float poisionTime = 5;
+	[SerializeField]
+	private float moveSpeed = 10;
+	[SerializeField]
+	private float poisonMoveSpeed = 5;
+
 	[Space]
-	public float jumpHeight = 8f;	
-	public int maxJumpCount = 2;
-	public float dropMultiplier = 2.5f;
-	public float lowJumpMultiplier = 2f;
+	[SerializeField]
+	private float jumpHeight = 8f;
+	[SerializeField]
+	private int maxJumpCount = 2;
+	[SerializeField]
+	private float dropMultiplier = 2.5f;
+	[SerializeField]
+	private float lowJumpMultiplier = 2f;
 	private int jumpCount;
 
 	[Header("Other")]
-	public GameObject playerCam;
-	public GameObject selfUI;
-	public Color selfColor = Color.blue;
+	[SerializeField]
+	private GameObject playerCam;
+	[SerializeField]
+	private GameObject playerUICam;
+	[SerializeField]
+	private Color selfColor = Color.blue;
+
+	[HideInInspector]
 	public Transform startPos;
-	private int playerCounter;
-	private bool poisioned = false;
+	[HideInInspector]
+	public bool poisioned = false;
+
+	public int playerCounter {
+		get;
+		private set;
+	}
 
 	private void Start() {
-		startPos = FindObjectOfType<NetworkStartPosition>().transform;
+		startPos = FindObjectOfType<NetworkStartPosition>().transform;		
 	}
 
 	void Update()    {
@@ -79,7 +97,8 @@ public class PlayerController : NetworkBehaviour{
 		base.OnStartLocalPlayer();
 		gameObject.GetComponent<MeshRenderer>().material.color = selfColor;
 		playerCam.SetActive(true);
-		selfUI.SetActive(true);
+		playerUICam.SetActive(true);
+		OnStartGame?.Invoke(transform);
 		StartCoroutine(SetPlayerName());
 	}
 
@@ -104,11 +123,10 @@ public class PlayerController : NetworkBehaviour{
 			}
 		}
 
-		for(; playerCounter < players.Length; playerCounter++) {
-			Text playerName = players[playerCounter].GetComponentInChildren<Text>();
-			if(playerName != null) {
-				playerName.text = "[Player " + (playerCounter + 1) + "]";
-			}
+		for(; playerCounter < players.Length; playerCounter++) {			
+			PlayerInfo p = players[playerCounter].GetComponent<PlayerInfo>();
+			p.SetId(playerCounter + 1);
+			p.SetName();
 		}
 	}
 
@@ -117,30 +135,5 @@ public class PlayerController : NetworkBehaviour{
 		if (collision.transform.tag == "Ground") {
 			jumpCount = 0;
 		}
-	}
-
-	//resets player back to start when standing in fire
-	//sets poision to true when standing in poision
-	private void OnTriggerEnter(Collider other) {
-		if (other.tag == "Fire") {
-			transform.position = startPos.position;
-		}
-
-		if (other.tag == "Poision") {
-			poisioned = true;
-		}
-	}
-
-	//start poision timer when leaving poision
-	private void OnTriggerExit(Collider other) {
-		if (other.tag == "Poision") {
-			StartCoroutine(Poisioned());
-		}
-	}
-
-	//wait a small amount of time for the poision to wear off
-	IEnumerator Poisioned() {
-		yield return new WaitForSeconds(poisionTime);
-		poisioned = false;
 	}
 }
